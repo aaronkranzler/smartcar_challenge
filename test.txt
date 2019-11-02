@@ -1,0 +1,127 @@
+TESTS FOR carInfo module: /vehicles/:id
+
+Test case 1 (known id):
+command: curl <host>/vehicles/1234 -X GET
+expected response status: 200 OK
+expected response to client: {"vin":"123123412412","color":"Metallic Silver","doorCount":4,"driveTrain":"v8"}
+expected server logs: GET request to /vehicles/:id from host: <host>\nsuccess!\n
+
+Test case 2 (unknown id):
+command: curl <host>/vehicles/3748
+expected response status: 500
+expected response to client: Internal server error with GM api
+expected server logs: GET request to /vehicles/:id from host: <host>\nError in car: GM api responded with bad code: 404\n
+
+TESTS FOR security module: /vehicles/:id/doors
+Test case 1 (known id with 4 door car):
+command: curl <host>/vehicles/1234/doors -X GET
+expected response status: 200 OK
+expected response to client (order of objects in array doesn't matter): [
+  {"location":"backLeft","locked":true},
+  {"location":"frontLeft","locked":true},
+  {"location":"backRight","locked":true},
+  {"location":"frontRight","locked":false}
+]
+expected server logs: GET request to /vehicles/:id/doors from host: <host>\nsuccess!\n
+
+Test case 2 (known id with 2 door car):
+command: curl <host>/vehicles/1235/doors -X GET
+expected response status: 200 OK
+expected response to client (order of objects in array doesn't matter): [
+  {"location":"frontLeft","locked":true},
+  {"location":"frontRight","locked":false}
+]
+expected server logs: GET request to /vehicles/:id/doors from host: <host>\nsuccess!\n
+
+Test case 3 (unknown id):
+command: curl <host>/vehicles/1238/doors -X GET
+expected response status: 500
+expected response to client: Internal server error with GM api
+expected server logs: GET request to /vehicles/:id/doors\nError in security: GM api responded with bad code: 404\n
+
+TESTS FOR fuel range part of energyRange module:
+Test case 1 (known id, non-null fuel range):
+command: curl <host>/vehicles/1234/fuel -X GET
+expected response status: 200 OK
+expected response to client: {"percent":32}
+expected server logs: GET request to /vehicles/:id/fuel from host: <host>\nsuccess!\n
+
+Test case 2 (known id, null fuel range):
+command: curl <host>/vehicles/1235/fuel -X GET
+expected response status: 400 Bad Request
+expected response to client: GM api does not have info on this car's fuel status
+expected server logs: GET request to /vehicles/:id/fuel from host: localhost\nError in energyRange: GM api does not have information regarding fuel for car with id 1235\n
+
+Test case 3 (unkown id):
+command: curl <host>/vehicles/1245/fuel -X GET
+expected response status: 500
+expected response to client: Internal server error with GM api
+expected server logs: GET request to /vehicles/:id/fuel from host: localhost\nError in energyRange: GM api responded with bad code: 404\n
+
+TESTS FOR battery range part of energyRange module:
+Test case 1 (known id, non-null battery range):
+command: curl <host>/vehicles/1235/battery -X GET
+expected response status: 200 OK
+expected response to client: {"percent":30}
+expected server logs: GET request to /vehicles/:id/battery from host: <host>\nsuccess!\n
+
+Test case 2 (known id, null battery range):
+command: curl <host>/vehicles/1234/battery -X GET
+expected response status: 400 Bad Request
+expected response to client: GM api does not have info on this car's battery status
+expected server logs: GET request to /vehicles/:id/battery from host: <host>\nError in energyRange: GM api does not have information regarding battery for car with id 1234\n
+
+Test case 3 (unkown id):
+command: curl <host>/vehicles/1245/battery -X GET
+expected response status: 500
+expected response to client: Internal server error with GM api
+expected server logs: GET request to /vehicles/:id/battery from host: localhost\nError in energyRange: GM api responded with bad code: 404\n
+
+TESTS FOR engine module:
+Test case 1 (known id, start engine, has proper header):
+command: curl <host>/vehicles/1234/engine -X POST -H 'Content-Type: application/json' -d '{"action":"START"}'
+expected response status: 200 OK
+expected response body to client: {"status":"success"}
+expected server logs: POST request to /vehicles/:id/engine from host: <host>\nsuccess!\n
+
+Test case 2 (known id, stop engine, has proper header):
+command: curl <host>/vehicles/1234/engine -X POST -H 'Content-Type: application/json' -d '{"action":"STOP"}'
+expected response status: 200 OK
+expected response body to client: {"status":"error"}
+expected server logs: POST request to /vehicles/:id/engine from host: <host>\nsuccess!\n
+
+Test case 3 (unknown id, start engine, has proper header):
+command: curl <host>/vehicles/1255/engine -X POST -H 'Content-Type: application/json' -d '{"action":"START"}'
+expected response status: 404 Not Found
+expected response body to client: Internal server error with GM api
+expected server logs: POST request to /vehicles/:id/engine from host: localhost\nError in engine: GM api responded with bad code: 404\n
+
+Test case 3 (unknown id, stop engine, has proper header):
+command: curl <host>/vehicles/1255/engine -X POST -H 'Content-Type: application/json' -d '{"action":"STOP"}'
+expected response status: 404 Not Found
+expected response body to client: Internal server error with GM api
+expected server logs: POST request to /vehicles/:id/engine from host: localhost\nError in engine: GM api responded with bad code: 404\n
+
+Test case 4 (missing body):
+command: curl <host>/vehicles/1234/engine -X POST -H 'Content-Type: application/json'
+expected response status: 400 Bad Request
+expected response body: Error in Engine request body: action does not exist or is null
+expected server logs: POST request to /vehicles/:id/engine from host: localhost
+
+Test case 5 (invalid action):
+command: curl <host>/vehicles/1234/engine -X POST -H 'Content-Type: application/json' -d '{"action":"NEITHER"}'
+expected response status: 200 OK
+expected response body: {"status":"failure"}
+expected server logs: POST request to /vehicles/:id/engine from host: localhost\nsuccess!\n
+
+Test case 6: (malformed request body):
+command curl <host>/vehicles/1234/engine -X POST -h 'Content-Type: applicatoin/json' -d '{"notaction":"notaction"}'
+expected response status: 400 Bad request
+expected response body: {"status":"failure"}
+expected server logs: POST request to /vehicles/:id/engine from host: localhost\nsuccess!\n
+
+Test case 7 (missing header):
+command: curl <host>/vehicles/1234/engine -X POST -d '{"action":"STOP"}'
+expected response status: 400 Bad Request
+expected response body to client: Error in Engine request: no 'Content-Type: application/json' header
+expected server logs: POST request to /vehicles/:id/engine from host: localhost\nbad request\n
